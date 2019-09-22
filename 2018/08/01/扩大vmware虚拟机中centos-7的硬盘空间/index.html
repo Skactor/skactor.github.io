@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="查看挂载点信息：123456789[root@localhost]# df -h文件系统 容量 已用 可用 已用% 挂载点/dev/mapper/centos-root 18G 15G 2.9G 84% / devtmpfs 485M 0 485M 0% /dev tmpfs 494M 84K 494M 1% /dev/shm tmpfs 494M 7.1M 487M 2% /run tmpfs">
+<meta name="keywords" content="VMWare,CentOS7,扩容">
+<meta property="og:type" content="article">
+<meta property="og:title" content="扩大VMware虚拟机中CentOS 7的硬盘空间">
+<meta property="og:url" content="https://www.skactor.tk/2018/08/01/扩大vmware虚拟机中centos-7的硬盘空间/index.html">
+<meta property="og:site_name" content="Skactor&#39;s Blog">
+<meta property="og:description" content="查看挂载点信息：123456789[root@localhost]# df -h文件系统 容量 已用 可用 已用% 挂载点/dev/mapper/centos-root 18G 15G 2.9G 84% / devtmpfs 485M 0 485M 0% /dev tmpfs 494M 84K 494M 1% /dev/shm tmpfs 494M 7.1M 487M 2% /run tmpfs">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-22T05:15:00.541Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="扩大VMware虚拟机中CentOS 7的硬盘空间">
+<meta name="twitter:description" content="查看挂载点信息：123456789[root@localhost]# df -h文件系统 容量 已用 可用 已用% 挂载点/dev/mapper/centos-root 18G 15G 2.9G 84% / devtmpfs 485M 0 485M 0% /dev tmpfs 494M 84K 494M 1% /dev/shm tmpfs 494M 7.1M 487M 2% /run tmpfs">
+  <link rel="canonical" href="https://www.skactor.tk/2018/08/01/扩大vmware虚拟机中centos-7的硬盘空间/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>扩大VMware虚拟机中CentOS 7的硬盘空间 | Skactor's Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Skactor's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="https://www.skactor.tk/2018/08/01/扩大vmware虚拟机中centos-7的硬盘空间/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Skactor">
+      <meta itemprop="description" content="专注信息安全">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Skactor's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">扩大VMware虚拟机中CentOS 7的硬盘空间
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2018-08-01 00:37:12" itemprop="dateCreated datePublished" datetime="2018-08-01T00:37:12+08:00">2018-08-01</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-22 13:15:00" itemprop="dateModified" datetime="2019-09-22T13:15:00+08:00">2019-09-22</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/收藏/" itemprop="url" rel="index"><span itemprop="name">收藏</span></a></span>
+
+                
+                
+                  ，
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/收藏/环境配置/" itemprop="url" rel="index"><span itemprop="name">环境配置</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="查看挂载点信息："><a href="#查看挂载点信息：" class="headerlink" title="查看挂载点信息："></a>查看挂载点信息：</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost]# df -h</span><br><span class="line">文件系统 容量 已用 可用 已用% 挂载点</span><br><span class="line">/dev/mapper/centos-root 18G 15G 2.9G 84% /</span><br><span class="line"> devtmpfs 485M 0 485M 0% /dev</span><br><span class="line"> tmpfs 494M 84K 494M 1% /dev/shm</span><br><span class="line"> tmpfs 494M 7.1M 487M 2% /run</span><br><span class="line"> tmpfs 494M 0 494M 0% /sys/fs/cgroup</span><br><span class="line"> /dev/sda1 497M 119M 379M 24% /boot</span><br><span class="line"> /dev/sr0 3.9G 3.9G 0 100% /run/扩大VMware虚拟机中CentOS 7的硬盘空间/zoubf/CentOS</span><br></pre></td></tr></table></figure>
+
+<a id="more"></a>
+
+<h2 id="扩展-VMWare-硬盘空间"><a href="#扩展-VMWare-硬盘空间" class="headerlink" title="扩展 VMWare 硬盘空间"></a>扩展 VMWare 硬盘空间</h2><p>关闭 Vmware 的 Linux 系统，这样，才能在 VMWare 菜单中设置需要增加到的磁盘大小</p>
+<p>如果这个选项是灰色的，说明此虚拟机建有快照，把快照全部删除再试试</p>
+<h2 id="对新增加的硬盘进行分区、格式化"><a href="#对新增加的硬盘进行分区、格式化" class="headerlink" title="对新增加的硬盘进行分区、格式化"></a>对新增加的硬盘进行分区、格式化</h2><p>增加了空间的硬盘是 /dev/sda</p>
+<p>分区：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost]# fdisk /dev/sda</span><br><span class="line">p　　　　　　　查看已分区数量（我看到有两个 /dev/sda1 /dev/sda2）</span><br><span class="line">n　　　　　　　新增加一个分区</span><br><span class="line">p　　　　　　　分区类型我们选择为主分区</span><br><span class="line"> 　　　　　　分区号选3（因为1,2已经用过了，见上）</span><br><span class="line"> 回车　　　　　　默认（起始扇区）</span><br><span class="line"> 回车　　　　　　默认（结束扇区）</span><br><span class="line">t　　　　　　　修改分区类型</span><br><span class="line"> 　　　　　　 选分区3</span><br><span class="line"> 8e　　　　　　修改为LVM（8e就是LVM）</span><br><span class="line">w　　　　　　写分区表</span><br><span class="line">q　　　　　　完成，退出fdisk命令</span><br></pre></td></tr></table></figure>
+
+<p>使用<code>partprobe</code>命令 或者重启机器</p>
+<p>格式化分区</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkfs.ext3 /dev/sda3</span><br></pre></td></tr></table></figure>
+
+<h2 id="添加新-LVM-到已有的-LVM-组，实现扩容"><a href="#添加新-LVM-到已有的-LVM-组，实现扩容" class="headerlink" title="添加新 LVM 到已有的 LVM 组，实现扩容"></a>添加新 LVM 到已有的 LVM 组，实现扩容</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lvm　　　　　　　　　　　　　　　　　　    进入lvm管理</span><br><span class="line">lvm&gt;pvcreate /dev/sda3　　　这是初始化刚才的分区，必须的</span><br><span class="line">lvm&gt;vgextend centos /dev/sda3  将初始化过的分区加入到虚拟卷组centos (卷和卷组的命令可以通过  vgdisplay )</span><br><span class="line">lvm&gt;vgdisplay -v</span><br><span class="line">lvm&gt;lvextend -l+21513 /dev/mapper/centos-root　　扩展已有卷的容量（21513 是通过vgdisplay查看的free的大小）</span><br><span class="line">lvm&gt;pvdisplay   查看卷容量，这时你会看到一个很大的卷了</span><br><span class="line">lvm&gt;quit    　退出</span><br></pre></td></tr></table></figure>
+
+<h2 id="以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令："><a href="#以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令：" class="headerlink" title="以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令："></a>以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令：</h2><p>CentOS 7 下面 由于使用的是 XFS，所以要用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xfs_growfs /dev/mapper/centos-root</span><br></pre></td></tr></table></figure>
+
+<p>CentOS 6 下面 要用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">resize2fs /dev/mapper/centos-root</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看新的磁盘空间"><a href="#查看新的磁盘空间" class="headerlink" title="查看新的磁盘空间"></a>查看新的磁盘空间</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df -h</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/VMWare/" rel="tag"># VMWare</a>
+            
+              <a href="/tags/CentOS7/" rel="tag"># CentOS7</a>
+            
+              <a href="/tags/扩容/" rel="tag"># 扩容</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/" rel="next" title="Basic、LDAP及Radius认证环境搭建记录">
+                  <i class="fa fa-chevron-left"></i> Basic、LDAP及Radius认证环境搭建记录
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/12/21/Cobalt Strike 3.12 界面中文乱码解决方案/" rel="prev" title="Cobalt Strike 3.12 界面中文乱码解决方案">
+                  Cobalt Strike 3.12 界面中文乱码解决方案 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#查看挂载点信息："><span class="nav-number">1.</span> <span class="nav-text">查看挂载点信息：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#扩展-VMWare-硬盘空间"><span class="nav-number">2.</span> <span class="nav-text">扩展 VMWare 硬盘空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#对新增加的硬盘进行分区、格式化"><span class="nav-number">3.</span> <span class="nav-text">对新增加的硬盘进行分区、格式化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#添加新-LVM-到已有的-LVM-组，实现扩容"><span class="nav-number">4.</span> <span class="nav-text">添加新 LVM 到已有的 LVM 组，实现扩容</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令："><span class="nav-number">5.</span> <span class="nav-text">以上只是卷扩容了，下面是文件系统的真正扩容，输入以下命令：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#查看新的磁盘空间"><span class="nav-number">6.</span> <span class="nav-text">查看新的磁盘空间</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Skactor</p>
+  <div class="site-description" itemprop="description">专注信息安全</div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span>
+        
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">26</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Skactor</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

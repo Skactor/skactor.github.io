@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="0x00 引言之前分析了 Screw 加密的原理，只是把 inflate 压缩后结果的每一位，按位取反之后，与 pm9screw_mycryptkey 数组中的一位做位异或操作。 因为算法比较简单，其实可以直接逆推出解密算法，不过还是先来看一下官方的解密实现好了。">
+<meta name="keywords" content="php,php_screw,python,C语言">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php_screw的加密和解密探究（二）解密算法与Python实现">
+<meta property="og:url" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/index.html">
+<meta property="og:site_name" content="Skactor&#39;s Blog">
+<meta property="og:description" content="0x00 引言之前分析了 Screw 加密的原理，只是把 inflate 压缩后结果的每一位，按位取反之后，与 pm9screw_mycryptkey 数组中的一位做位异或操作。 因为算法比较简单，其实可以直接逆推出解密算法，不过还是先来看一下官方的解密实现好了。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/2018032701502797.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327015237523.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327015745961.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020042542.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020209696.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020312195.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020338615.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020820193.png">
+<meta property="og:updated_time" content="2019-09-22T05:18:00.965Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="php_screw的加密和解密探究（二）解密算法与Python实现">
+<meta name="twitter:description" content="0x00 引言之前分析了 Screw 加密的原理，只是把 inflate 压缩后结果的每一位，按位取反之后，与 pm9screw_mycryptkey 数组中的一位做位异或操作。 因为算法比较简单，其实可以直接逆推出解密算法，不过还是先来看一下官方的解密实现好了。">
+<meta name="twitter:image" content="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/2018032701502797.png">
+  <link rel="canonical" href="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>php_screw的加密和解密探究（二）解密算法与Python实现 | Skactor's Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Skactor's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="https://www.skactor.tk/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Skactor">
+      <meta itemprop="description" content="专注信息安全">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Skactor's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">php_screw的加密和解密探究（二）解密算法与Python实现
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2018-03-27 02:23:11" itemprop="dateCreated datePublished" datetime="2018-03-27T02:23:11+08:00">2018-03-27</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-22 13:18:00" itemprop="dateModified" datetime="2019-09-22T13:18:00+08:00">2019-09-22</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/原创/" itemprop="url" rel="index"><span itemprop="name">原创</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="0x00-引言"><a href="#0x00-引言" class="headerlink" title="0x00 引言"></a>0x00 引言</h2><p>之前分析了 Screw 加密的原理，只是把 inflate 压缩后结果的每一位，按位取反之后，与 pm9screw_mycryptkey 数组中的一位做位异或操作。</p>
+<p>因为算法比较简单，其实可以直接逆推出解密算法，不过还是先来看一下官方的解密实现好了。</p>
+<a id="more"></a>
+
+<h2 id="0x01-分析"><a href="#0x01-分析" class="headerlink" title="0x01 分析"></a>0x01 分析</h2><p>首先，从 Makefile.in 我们能看到源码核心的文件</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">PHP_SCREW_SHARED_LIBADD = libphpscrewext.so</span><br><span class="line">LTLIBRARY_NAME		= libscrew.la</span><br><span class="line">LTLIBRARY_SOURCES	= php_screw.c zencode.c</span><br><span class="line">LTLIBRARY_SHARED_NAME	= php_screw.la</span><br><span class="line">LTLIBRARY_SHARED_LIBADD	= <span class="variable">$(PHP_SCREW_SHARED_LIBADD)</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">include</span> <span class="variable">$(top_srcdir)</span>/build/dynlib.mk</span><br></pre></td></tr></table></figure>
+
+<p>zencode.c 之前已经分析过，是用来调用 zlib 库以提供压缩和解压操作的代码，那么<code>php_screw.c</code>应该就是包含解密和与 php 交互部分的代码了</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">Filename: php_screw.c</span><br><span class="line">Line: <span class="number">25</span><span class="number">-53</span></span><br><span class="line"></span><br><span class="line"><span class="function">FILE *<span class="title">pm9screw_ext_fopen</span><span class="params">(FILE *fp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">stat</span>	<span class="title">stat_buf</span>;</span></span><br><span class="line">	<span class="keyword">char</span>	*datap, *newdatap;</span><br><span class="line">	<span class="keyword">int</span>	datalen, newdatalen;</span><br><span class="line">	<span class="keyword">int</span>	cryptkey_len = <span class="keyword">sizeof</span> pm9screw_mycryptkey / <span class="number">2</span>;</span><br><span class="line">	<span class="keyword">int</span>	i;</span><br><span class="line"></span><br><span class="line">	fstat(fileno(fp), &amp;stat_buf);</span><br><span class="line">	datalen = stat_buf.st_size - PM9SCREW_LEN;</span><br><span class="line">	datap = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(datalen);</span><br><span class="line">	fread(datap, datalen, <span class="number">1</span>, fp);</span><br><span class="line">	fclose(fp);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;datalen; i++) &#123;</span><br><span class="line">		datap[i] = (<span class="keyword">char</span>)pm9screw_mycryptkey[(datalen - i) % cryptkey_len] ^ (~(datap[i]));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	newdatap = zdecode(datap, datalen, &amp;newdatalen);</span><br><span class="line"></span><br><span class="line">	fp = tmpfile();</span><br><span class="line">	fwrite(newdatap, newdatalen, <span class="number">1</span>, fp);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">free</span>(datap);</span><br><span class="line">	<span class="built_in">free</span>(newdatap);</span><br><span class="line"></span><br><span class="line">	rewind(fp);</span><br><span class="line">	<span class="keyword">return</span> fp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="0x02-Python-实现"><a href="#0x02-Python-实现" class="headerlink" title="0x02 Python 实现"></a>0x02 Python 实现</h2><p>如果使用 C 语言，那么只需要截取上边的部分，和<code>zencode.c</code>一起就可以编写出解密工具。在 github 上可以找到不少类似的工具。比如：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">https://github.com/dehydr8/php_unscrew</span><br><span class="line">https://github.com/firebroo/screw_decode</span><br></pre></td></tr></table></figure>
+
+<p>不过这些工具都是基于 C 语言的，可移植性就比较差，所以我想用 Python 写一个。</p>
+<p>参考网上基于 C 语言的代码，可以用 Python 实现解码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(datalen):</span><br><span class="line">    tmp = chr((pm9screw_mycryptkey[(datalen - i) % cryptkey_len] ^ (~ord(data[i]))) % <span class="number">256</span>)</span><br><span class="line">    out += tmp</span><br></pre></td></tr></table></figure>
+
+<p>这部分就是主要用来解密的部分了，与 C 语言不同的主要就是对 256 取余，因为 C 语言在强制类型转换的时候，自动把超限的部分取余，而 Python 就得我们自己来了，这也是唯一的难点。</p>
+<p>至于解压缩，我们只需要调用 Python 的 zlib 库就可以简单的做到，完整的解密代码如下所示：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decrypt</span><span class="params">(path, write=True)</span>:</span></span><br><span class="line">    data = open(path, <span class="string">'rb'</span>).read()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> len(data) &lt; PM9SCREW_LEN:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> data[:PM9SCREW_LEN] != PM9SCREW:</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">    data = data[PM9SCREW_LEN:]</span><br><span class="line">    datalen = len(data)</span><br><span class="line">    out = <span class="string">''</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(datalen):</span><br><span class="line">        tmp = chr((pm9screw_mycryptkey[(datalen - i) % cryptkey_len] ^ (~ord(data[i]))) % <span class="number">256</span>)</span><br><span class="line">        out += tmp</span><br><span class="line"></span><br><span class="line">    new = zlib.decompress(out)</span><br><span class="line">    <span class="keyword">if</span> write:</span><br><span class="line">        shutil.move(path, path + <span class="string">".bak"</span>)</span><br><span class="line">        open(path, <span class="string">'w'</span>).write(new)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        print(new)</span><br></pre></td></tr></table></figure>
+
+<p>这是针对一个文件的，所以我们要加入一个函数来支持遍历解码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">multi_decrypt</span><span class="params">(path)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> os.path.exists(path):</span><br><span class="line">        print(<span class="string">'Error: %s not Found.'</span> % path)</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> os.path.isdir(path):</span><br><span class="line">        folder = os.walk(path)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> fpathe, dirs, fs <span class="keyword">in</span> folder:</span><br><span class="line">            <span class="keyword">for</span> f <span class="keyword">in</span> fs:</span><br><span class="line">                <span class="keyword">if</span> f.endswith(<span class="string">'.php'</span>):</span><br><span class="line">                    decrypt(os.path.join(fpathe, f),<span class="literal">False</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        decrypt(path)</span><br></pre></td></tr></table></figure>
+
+<p>最后的成品代码在这里<a href="https://github.com/Skactor/php_screw-decrypt" target="_blank" rel="noopener">Link</a></p>
+<h2 id="0x03-C-语言实现"><a href="#0x03-C-语言实现" class="headerlink" title="0x03 C 语言实现"></a>0x03 C 语言实现</h2><p>根据网上的代码，我使用 C 语言在 Windows 上重新实现了一遍加密解密，代码如下</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"zencode.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/stat.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM9SCREW        <span class="meta-string">"\tPM9SCREW\t"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> PM9SCREW_LEN     10</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">short</span> pm9screw_mycryptkey[] = &#123;</span><br><span class="line">	<span class="number">11152</span>, <span class="number">368</span>, <span class="number">192</span>, <span class="number">1281</span>, <span class="number">62</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">decode_screw</span><span class="params">(<span class="keyword">char</span>* filename)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	FILE *fp;</span><br><span class="line">	<span class="keyword">char</span> buf[PM9SCREW_LEN + <span class="number">1</span>];</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">stat</span> <span class="title">stat_buf</span>;</span></span><br><span class="line">	<span class="keyword">char</span> *datap, *newdatap;</span><br><span class="line">	<span class="keyword">int</span> datalen, newdatalen;</span><br><span class="line">	<span class="keyword">int</span> cryptkey_len = <span class="keyword">sizeof</span> pm9screw_mycryptkey / <span class="number">2</span>;</span><br><span class="line">	<span class="keyword">char</span> decode_filename[<span class="number">256</span>];</span><br><span class="line">	<span class="keyword">int</span> i;</span><br><span class="line"></span><br><span class="line">	fp = fopen(filename, <span class="string">"rb"</span>);</span><br><span class="line">	<span class="keyword">if</span> (fp == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"File not found(%s)\n"</span>, filename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fread(buf, PM9SCREW_LEN, <span class="number">1</span>, fp);</span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">memcmp</span>(buf, PM9SCREW, PM9SCREW_LEN) != <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Not a crypted file.\n"</span>);</span><br><span class="line">		fclose(fp);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> WIN32</span></span><br><span class="line">	fstat(_fileno(fp), &amp;stat_buf);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">	fstat(fileno(fp), &amp;stat_buf);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	datalen = stat_buf.st_size - PM9SCREW_LEN;</span><br><span class="line">	datap = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(datalen);</span><br><span class="line">	<span class="built_in">memset</span>(datap, <span class="number">0</span>, datalen);</span><br><span class="line">	fread(datap, datalen, <span class="number">1</span>, fp);</span><br><span class="line">	fclose(fp);</span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; datalen; i++) &#123;</span><br><span class="line">		datap[i] = (<span class="keyword">char</span>)pm9screw_mycryptkey[(datalen - i) % cryptkey_len] ^ (~(datap[i]));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	newdatap = zdecode(datap, datalen, &amp;newdatalen);</span><br><span class="line">	<span class="keyword">if</span> (newdatalen)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">sprintf</span>(decode_filename, <span class="string">"%s%s"</span>, filename, <span class="string">".decode"</span>);</span><br><span class="line">		fp = fopen(decode_filename, <span class="string">"w"</span>);</span><br><span class="line">		fwrite(newdatap, newdatalen, <span class="number">1</span>, fp);</span><br><span class="line">		fclose(fp);</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Success Decrypt(%s)\n"</span>, filename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">encode_screw</span><span class="params">(<span class="keyword">char</span>* filename)</span> </span>&#123;</span><br><span class="line">	FILE	*fp;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span>	<span class="title">stat</span>	<span class="title">stat_buf</span>;</span></span><br><span class="line">	<span class="keyword">char</span>	*datap, *newdatap;</span><br><span class="line">	<span class="keyword">int</span>	datalen, newdatalen;</span><br><span class="line">	<span class="keyword">int</span>	cryptkey_len = <span class="keyword">sizeof</span> pm9screw_mycryptkey / <span class="number">2</span>;</span><br><span class="line">	<span class="keyword">char</span>	oldfilename[<span class="number">256</span>];</span><br><span class="line">	<span class="keyword">int</span>	i;</span><br><span class="line"></span><br><span class="line">	fp = fopen(filename, <span class="string">"rb"</span>);</span><br><span class="line">	<span class="keyword">if</span> (fp == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"File not found(%s)\n"</span>, filename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> WIN32</span></span><br><span class="line">	fstat(_fileno(fp), &amp;stat_buf);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">	fstat(fileno(fp), &amp;stat_buf);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	datalen = stat_buf.st_size;</span><br><span class="line">	datap = (<span class="keyword">char</span>*)<span class="built_in">malloc</span>(datalen + PM9SCREW_LEN);</span><br><span class="line">	fread(datap, datalen, <span class="number">1</span>, fp);</span><br><span class="line">	fclose(fp);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">sprintf</span>(oldfilename, <span class="string">"%s.screw"</span>, filename);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">memcmp</span>(datap, PM9SCREW, PM9SCREW_LEN) == <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Already Crypted(%s)\n"</span>, filename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fp = fopen(oldfilename, <span class="string">"w"</span>);</span><br><span class="line">	<span class="keyword">if</span> (fp == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Can not create backup file(%s)\n"</span>, oldfilename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	fwrite(datap, datalen, <span class="number">1</span>, fp);</span><br><span class="line">	fclose(fp);</span><br><span class="line"></span><br><span class="line">	newdatap = zencode(datap, datalen, &amp;newdatalen);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; newdatalen; i++) &#123;</span><br><span class="line">		newdatap[i] = (<span class="keyword">char</span>)pm9screw_mycryptkey[(newdatalen - i) % cryptkey_len] ^ (~(newdatap[i]));</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fp = fopen(filename, <span class="string">"w"</span>);</span><br><span class="line">	<span class="keyword">if</span> (fp == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Can not create crypt file(%s)\n"</span>, oldfilename);</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	fwrite(PM9SCREW, PM9SCREW_LEN, <span class="number">1</span>, fp);</span><br><span class="line">	fwrite(newdatap, newdatalen, <span class="number">1</span>, fp);</span><br><span class="line">	fclose(fp);</span><br><span class="line">	<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Success Crypting(%s)\n"</span>, filename);</span><br><span class="line">	<span class="built_in">free</span>(newdatap);</span><br><span class="line">	<span class="built_in">free</span>(datap);</span><br><span class="line">	<span class="keyword">return</span>(<span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">main(<span class="keyword">int</span> argc, <span class="keyword">char</span>**argv)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (argc != <span class="number">3</span>) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Usage: %s e/d filename.\n"</span>, argv[<span class="number">0</span>]);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (!<span class="built_in">strcmp</span>(argv[<span class="number">1</span>], <span class="string">"d"</span>))</span><br><span class="line">	&#123;</span><br><span class="line">		decode_screw(argv[<span class="number">2</span>]);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		encode_screw(argv[<span class="number">2</span>]);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用方法很简单，screw e/d filename，e 参数是加密，d 是解密，可以用来生成测试文件，已经有一份编译好的 screw.exe 传到了<a href="https://github.com/Skactor/php_screw-decrypt/raw/master/screw.exe" target="_blank" rel="noopener">这里</a>，可以直接下载使用，但是 C 语言版本没有写目录支持。可以通过 Bat 脚本实现。</p>
+<h2 id="0x04-综合测试"><a href="#0x04-综合测试" class="headerlink" title="0x04 综合测试"></a>0x04 综合测试</h2><img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/2018032701502797.png" class="1">
+
+<p>简单的测试了一下，结果如上图所示，这是 screw.exe 的测试结果，再使用 decode_screw.py 试一下</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327015237523.png" class="2">
+
+<p>也可以成功的输出解码后的结果</p>
+<h2 id="0x05-IDA-获取加密的-key"><a href="#0x05-IDA-获取加密的-key" class="headerlink" title="0x05 IDA 获取加密的 key"></a>0x05 IDA 获取加密的 key</h2><p>通过前面的分析可知，这种加密的逆向在知道 key 之后非常简单，现在尝试用 ida 进行静态分析，获取隐藏在 so 文件中的密钥。</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327015745961.png" class="3">
+
+<p>通过之前分析源码，我们知道，加密过程是在<code>pm9screw_ext_fopen</code>函数中实现的，所以只需要到这个函数中去找加密部分即可。</p>
+<h3 id="0x05-1-通过导图查找"><a href="#0x05-1-通过导图查找" class="headerlink" title="0x05.1 通过导图查找"></a>0x05.1 通过导图查找</h3><img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020042542.png" class="4">
+
+<p>然后右边的 Proximity Browser 就会如图所示：</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020209696.png" class="5">
+
+<p>很明显，我标黄的就是加密密钥了，双击跳转至其指针保存处：</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020312195.png" class="6">
+
+<p>再次双击黄标：</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020338615.png" class="7">
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pm9screw_mycryptkey dw 2B90h, 170h, 0C0h, 501h, 3Eh</span><br></pre></td></tr></table></figure>
+
+<p>pm9screw_mycryptkey 即为加密密钥</p>
+<h3 id="0x05-2-通过伪代码查找"><a href="#0x05-2-通过伪代码查找" class="headerlink" title="0x05.2 通过伪代码查找"></a>0x05.2 通过伪代码查找</h3><p>再找到目标函数之后，使用 F5，查看伪代码：</p>
+<img src="/2018/03/27/php-screw的加密和解密探究（二）解密算法与python实现/20180327020820193.png" class="8">
+
+<p>双击黄标也可以跳转到之前找到的位置。</p>
+<h2 id="0x06-总结"><a href="#0x06-总结" class="headerlink" title="0x06 总结"></a>0x06 总结</h2><p>php_screw 总体来讲还是一个非常简单的算法，所以它的实现很容易，但是思路确实通用的，不管是变通里面的加密方式，还是对编译出的动态库进行加密，都能起到一定的干扰效果。</p>
+<p>之后可能会尝试自己研究几个算法，结合这个 php_screw 的架子来进行代码加密。</p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/php/" rel="tag"># php</a>
+            
+              <a href="/tags/php-screw/" rel="tag"># php_screw</a>
+            
+              <a href="/tags/python/" rel="tag"># python</a>
+            
+              <a href="/tags/C语言/" rel="tag"># C语言</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/03/27/在win10x64上安装使用atom的platformio-ide-terminal插件/" rel="next" title="在win10x64上安装使用atom的platformio-ide-terminal插件">
+                  <i class="fa fa-chevron-left"></i> 在win10x64上安装使用atom的platformio-ide-terminal插件
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/03/29/收集整理的文件下载的方式/" rel="prev" title="收集整理的15种文件下载的方式">
+                  收集整理的15种文件下载的方式 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0x00-引言"><span class="nav-number">1.</span> <span class="nav-text">0x00 引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x01-分析"><span class="nav-number">2.</span> <span class="nav-text">0x01 分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x02-Python-实现"><span class="nav-number">3.</span> <span class="nav-text">0x02 Python 实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x03-C-语言实现"><span class="nav-number">4.</span> <span class="nav-text">0x03 C 语言实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x04-综合测试"><span class="nav-number">5.</span> <span class="nav-text">0x04 综合测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x05-IDA-获取加密的-key"><span class="nav-number">6.</span> <span class="nav-text">0x05 IDA 获取加密的 key</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#0x05-1-通过导图查找"><span class="nav-number">6.1.</span> <span class="nav-text">0x05.1 通过导图查找</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x05-2-通过伪代码查找"><span class="nav-number">6.2.</span> <span class="nav-text">0x05.2 通过伪代码查找</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x06-总结"><span class="nav-number">7.</span> <span class="nav-text">0x06 总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Skactor</p>
+  <div class="site-description" itemprop="description">专注信息安全</div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span>
+        
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">26</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Skactor</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

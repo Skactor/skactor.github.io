@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="一、目的实验搭建基于 Apache 服务器的各类认证环境，主要是 Basic、LDAP 以及 Radius 二、环境xampp、OpenLDAP、FreeRADIUS、Fedora 25 (Workstation Edition) 三、要求 建议在 Linux 环境下完成实验（推荐顺序是 Fedora&amp;gt;Ubuntu&amp;gt;其他 Linux 发行版&amp;gt;Kali orBT )。windows">
+<meta name="keywords" content="LDAP,Radius,认证,Apache">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Basic、LDAP及Radius认证环境搭建记录">
+<meta property="og:url" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/index.html">
+<meta property="og:site_name" content="Skactor&#39;s Blog">
+<meta property="og:description" content="一、目的实验搭建基于 Apache 服务器的各类认证环境，主要是 Basic、LDAP 以及 Radius 二、环境xampp、OpenLDAP、FreeRADIUS、Fedora 25 (Workstation Edition) 三、要求 建议在 Linux 环境下完成实验（推荐顺序是 Fedora&amp;gt;Ubuntu&amp;gt;其他 Linux 发行版&amp;gt;Kali orBT )。windows">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715011949133.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715013044397.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715013545438.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715223812891.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715223942364.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715224723891.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715225244554.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715225951547.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715230148799.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716114917443.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716114418134.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716115149107.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716115458551.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716121939738.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716122019821.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716124411368.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716125255195.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716121939738.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716122019821.png">
+<meta property="og:updated_time" content="2019-09-22T05:18:00.965Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Basic、LDAP及Radius认证环境搭建记录">
+<meta name="twitter:description" content="一、目的实验搭建基于 Apache 服务器的各类认证环境，主要是 Basic、LDAP 以及 Radius 二、环境xampp、OpenLDAP、FreeRADIUS、Fedora 25 (Workstation Edition) 三、要求 建议在 Linux 环境下完成实验（推荐顺序是 Fedora&amp;gt;Ubuntu&amp;gt;其他 Linux 发行版&amp;gt;Kali orBT )。windows">
+<meta name="twitter:image" content="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715011949133.png">
+  <link rel="canonical" href="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>Basic、LDAP及Radius认证环境搭建记录 | Skactor's Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Skactor's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="https://www.skactor.tk/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Skactor">
+      <meta itemprop="description" content="专注信息安全">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Skactor's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">Basic、LDAP及Radius认证环境搭建记录
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2018-07-15 08:47:45" itemprop="dateCreated datePublished" datetime="2018-07-15T08:47:45+08:00">2018-07-15</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-22 13:18:00" itemprop="dateModified" datetime="2019-09-22T13:18:00+08:00">2019-09-22</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/原创/" itemprop="url" rel="index"><span itemprop="name">原创</span></a></span>
+
+                
+                
+                  ，
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/原创/实验/" itemprop="url" rel="index"><span itemprop="name">实验</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="一、目的"><a href="#一、目的" class="headerlink" title="一、目的"></a>一、目的</h2><p>实验搭建基于 Apache 服务器的各类认证环境，主要是 Basic、LDAP 以及 Radius</p>
+<h2 id="二、环境"><a href="#二、环境" class="headerlink" title="二、环境"></a>二、环境</h2><p><a href="https://www.apachefriends.org/index.html" target="_blank" rel="noopener">xampp</a>、<a href="http://www.openldap.org/" target="_blank" rel="noopener">OpenLDAP</a>、<a href="http://freeradius.org/" target="_blank" rel="noopener">FreeRADIUS</a>、Fedora 25 (Workstation Edition)</p>
+<h2 id="三、要求"><a href="#三、要求" class="headerlink" title="三、要求"></a>三、要求</h2><ol>
+<li>建议在 Linux 环境下完成实验（推荐顺序是 Fedora&gt;Ubuntu&gt;其他 Linux 发行版&gt;Kali or<br>BT )。windows 下如果能搞定配置也是可以接受的。</li>
+<li>用 openldap 搭建 LDAP 服务器，尝试对学生信息进行增删改查，信息包括但不限于学生 id、密码、<br>邮箱、手机号、部门等。</li>
+<li>配置 apache 服务器，配置 Basic 认证模块和需要认证的页面，使用用户名密码认证。</li>
+<li>配置 apache 服务器，配置 LDAP 认证模块和需要认证的页面，使用 LDAP 存放的学生的用户名密码<br>认证。</li>
+<li>用 freeradius 搭建 RADIUS 服务器，尝试配置基于 unix 账号的认证，并用 radtest 验证服务有效。</li>
+<li>配置 apache 服务器，配置 RADIUS 认证模块和需要认证的页面，使用 unix/Linux 本地用户名密码<br>认证。</li>
+<li>在 freeradius 中配置 ldap 认证模块，和 LDAP 服务器互通，利用 ldap 账号密码认证用户身份，并用<br>radtest 测试通过。</li>
+<li>在之前 apache 的 RADIUS 认证模块的配置下，不改变配置，切换到使用 LDAP 存放的学生用户名密<br>码认证，体会这种配置和 3 的不同。<br>以下为选做：</li>
+<li>在 ROS 的 AP 下，通过配置与 RADIUS 服务器连接，是学生可以通过存放在 LDAP 中的用户名密码<br>来通过认证接入 wifi。</li>
+</ol>
+<a id="more"></a>
+
+<h2 id="四、内容"><a href="#四、内容" class="headerlink" title="四、内容"></a>四、内容</h2><h3 id="0x01-Basic-认证"><a href="#0x01-Basic-认证" class="headerlink" title="0x01 Basic 认证"></a>0x01 Basic 认证</h3><h4 id="1-简介"><a href="#1-简介" class="headerlink" title="1.简介"></a>1.简介</h4><p>在 HTTP 中，基本认证（Basic access authentication）是一种用来允许网页浏览器或其他客户端程序在请求时提供用户名和口令形式的身份凭证的一种登录验证方式。编码这一步骤的目的并不是安全与隐私，而是为将用户名和口令中的不兼容的字符转换为均与 HTTP 协议兼容的字符集。</p>
+<h4 id="2-操作"><a href="#2-操作" class="headerlink" title="2.操作"></a>2.操作</h4><p>首先执行 <code>mkdir /opt/lampp/basic/</code> 建立目录</p>
+<p>然后在<code>/opt/lampp/etc/httpd.conf</code>尾部添加如下内容</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Alias /basic &quot;/opt/lampp/basic&quot;</span><br><span class="line"></span><br><span class="line">&lt;Directory &quot;/opt/lampp/basic&quot;&gt;</span><br><span class="line">Options Indexes FollowSymLinks</span><br><span class="line">AllowOverride all</span><br><span class="line">Order allow,deny</span><br><span class="line">Allow from all</span><br><span class="line">&lt;/Directory&gt;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>/opt/lampp/basic</code>目录下，建立.htaccess 文件，内容如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;Files ~ &quot;^\.(htaccess|htpasswd)$&quot;&gt;</span><br><span class="line">deny from all</span><br><span class="line">&lt;/Files&gt;</span><br><span class="line">AuthUserFile /opt/lampp/basic/.htpasswd</span><br><span class="line">AuthGroupFile /dev/null</span><br><span class="line">AuthName &quot;Please enter your ID and password&quot;</span><br><span class="line">AuthType Basic</span><br><span class="line">require valid-user</span><br><span class="line">order deny,allow</span><br></pre></td></tr></table></figure>
+
+<p>使用<code>/opt/lampp/bin/htpasswd</code>工具生成密码文件</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715011949133.png" class="1">
+
+<p>可以使用<code>htpasswd -b /opt/lampp/basic/.htpasswd name pass</code>生成需要的文件</p>
+<p>使用<code>/opt/lampp reloadapache</code>重启 Apache2，访问<a href="http://localhost/basic/" target="_blank" rel="noopener">Basic</a></p>
+<p>发现有身份认证请求</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715013044397.png" class="2">
+
+<p>输入之前生成密码文件时所使用的账号和密码，即可进入认证后的页面</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715013545438.png" class="3">
+
+<p>至此，简单的 Basic 认证测试完成</p>
+<h3 id="0x02-OpenLDAP-认证"><a href="#0x02-OpenLDAP-认证" class="headerlink" title="0x02 OpenLDAP 认证"></a>0x02 OpenLDAP 认证</h3><h4 id="LDAP-服务器配置"><a href="#LDAP-服务器配置" class="headerlink" title="LDAP 服务器配置"></a>LDAP 服务器配置</h4><p>首先安装 LDAP 认证服务器</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo dnf install -y openldap openldap-clients openldap-servers migrationtools</span><br></pre></td></tr></table></figure>
+
+<p>OpenLDAP 的相关配置文件信息</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/etc/openldap/slapd.conf：OpenLDAP的主配置文件，记录根域信息，管理员名称，密码，日志，权限等</span><br><span class="line">/etc/openldap/slapd.d/*：这下面是/etc/openldap/slapd.conf配置信息生成的文件，每修改一次配置信息，这里的东西就要重新生成</span><br><span class="line">/etc/openldap/schema/*：OpenLDAP的schema存放的地方</span><br><span class="line">/var/lib/ldap/*：OpenLDAP的数据文件</span><br><span class="line">/usr/share/openldap-servers/slapd.conf.obsolete 模板配置文件</span><br><span class="line">/usr/share/openldap-servers/DB_CONFIG.example 模板数据库配置文件</span><br><span class="line"></span><br><span class="line">OpenLDAP监听的端口：</span><br><span class="line">默认监听端口：389（明文数据传输）</span><br><span class="line">加密监听端口：636（密文数据传输）</span><br></pre></td></tr></table></figure>
+
+<p>准备 LDAP 数据库</p>
+<p>使用<code>slappasswd</code>命令生成密码</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715223812891.png" class="4">
+
+<p>在<code>/usr/share/openldap-servers/slapd.ldif</code>的结尾添加密码</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715223942364.png" class="5">
+
+<p>使用如下命令重建数据库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">rm /var/lib/ldap -rf</span><br><span class="line">cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG <span class="comment"># 拷贝数据库配置文件</span></span><br><span class="line">slapadd -n 0 -F /etc/openldap/slapd.d -l /usr/share/openldap-servers/slapd.ldif</span><br><span class="line">chown -R ldap.ldap /var/lib/ldap <span class="comment"># 修改目录权限</span></span><br><span class="line">slaptest -u</span><br><span class="line">service slapd restart <span class="comment"># 重启OpenLDAP</span></span><br></pre></td></tr></table></figure>
+
+<p>生成域名 DIT base.ldif 文件</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/migrationtools/migrate_base.pl &gt; /root/base.ldif</span><br></pre></td></tr></table></figure>
+
+<p>加载 base.ldif 文件到 openldap 数据库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldapadd -x -W -D <span class="string">"cn=Manager,dc=my-domain,dc=com"</span> -f /root/base.ldif</span><br></pre></td></tr></table></figure>
+
+<p>启动及设置开机自启动启动服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl start slapd</span><br><span class="line">systemctl <span class="built_in">enable</span> slapd</span><br></pre></td></tr></table></figure>
+
+<p>查看启动状态及监听端口</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl status slapd.service</span><br><span class="line">netstat -anpt |grep slapd</span><br></pre></td></tr></table></figure>
+
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715224723891.png" class="6">
+
+<p>添加下面的 LDAP 数据库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /etc/openldap/schema/</span><br><span class="line"></span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f collective.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f corba.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f core.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f cosine.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f duaconf.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f dyngroup.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f inetorgperson.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f java.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f misc.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f nis.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f openldap.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f pmi.ldif</span><br><span class="line">ldapadd -Y EXTERNAL -H ldapi:/// -D <span class="string">"cn=config"</span> -f ppolicy.ldif</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件<code>/usr/share/migrationtools/migrate_common.ph</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">修改71行：</span><br><span class="line">$DEFAULT_MAIL_DOMAIN = &quot;my-domain.com&quot;;</span><br><span class="line">修改74行：</span><br><span class="line">$DEFAULT_BASE = &quot;dc=my-domain,dc=com&quot;;</span><br></pre></td></tr></table></figure>
+
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715225244554.png" class="7">
+
+<p>生成域名 base.ldif 文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/share/migrationtools/migrate_base.pl &gt; /root/base.ldif</span><br></pre></td></tr></table></figure>
+
+<p>加载 base.ldif 文件到 openldap 数据库</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldapadd -x -W -D &quot;cn=Manager,dc=my-domain,dc=com&quot; -f /root/base.ldif</span><br></pre></td></tr></table></figure>
+
+<p>创建用户并设置密码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">mkdir /home/guests</span><br><span class="line">useradd -d /home/guests/ldapuser1 ldapuser1</span><br><span class="line">useradd -d /home/guests/ldapuser2 ldapuser2</span><br><span class="line">useradd -d /home/guests/hongxue hongxue</span><br><span class="line"></span><br><span class="line">echo &apos;password&apos; | passwd --stdin hongxue</span><br><span class="line">echo &apos;password&apos; | passwd --stdin ldapuser1</span><br><span class="line">echo &apos;password&apos; | passwd --stdin ldapuser2</span><br></pre></td></tr></table></figure>
+
+<p>过滤出用户信息并保存</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">getent passwd | tail -n 3 &gt; /root/users</span><br><span class="line">getent shadow | tail -n 3 &gt; /root/shadow</span><br><span class="line">getent group  | tail -n 3 &gt; /root/groups</span><br></pre></td></tr></table></figure>
+
+<p>通过用户信息并生成 ldif 文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /usr/share/migrationtools/</span><br><span class="line">./migrate_passwd.pl /root/users &gt; users.ldif</span><br><span class="line">./migrate_group.pl /root/groups &gt; groups.ldif</span><br></pre></td></tr></table></figure>
+
+<p>更新这些用户和组的 LDIF 文件到 LDAP 数据库</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ldapadd -x -W -D &quot;cn=Manager,dc=my-domain,dc=com&quot; -f users.ldif</span><br><span class="line">ldapadd -x -W -D &quot;cn=Manager,dc=my-domain,dc=com&quot; -f groups.ldif</span><br></pre></td></tr></table></figure>
+
+<p>搜索 LDAP DIT 的所有记录</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldapsearch -x -b &quot;dc=my-domain,dc=com&quot; -H ldap://127.0.0.1</span><br></pre></td></tr></table></figure>
+
+<h4 id="Apache-配置"><a href="#Apache-配置" class="headerlink" title="Apache 配置"></a>Apache 配置</h4><p>执行 <code>mkdir /opt/lampp/ldap/</code> 建立目录</p>
+<p>然后在<code>/opt/lampp/etc/httpd.conf</code>尾部添加如下内容</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Alias /ldap &quot;/opt/lampp/ldap&quot;</span><br><span class="line"></span><br><span class="line">&lt;Directory &quot;/opt/lampp/ldap&quot;&gt;</span><br><span class="line">Options Indexes FollowSymLinks</span><br><span class="line">AllowOverride all</span><br><span class="line">Order allow,deny</span><br><span class="line">Allow from all</span><br><span class="line">&lt;/Directory&gt;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>/opt/lampp/ldap</code>目录下，建立.htaccess 文件，内容如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">AuthType Basic</span><br><span class="line">AuthName &quot;Test Login&quot;</span><br><span class="line">AuthBasicProvider ldap</span><br><span class="line">AuthLDAPURL ldap://127.0.0.1:389/ou=People,dc=my-domain,dc=com</span><br><span class="line">require valid-user</span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost/ldap/</code>，发现需要认证</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715225951547.png" class="8">
+
+<p>使用刚才生成的三个账户中任意一组均可登陆成功</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180715230148799.png" class="9">
+
+<h3 id="0x03-RADIUS"><a href="#0x03-RADIUS" class="headerlink" title="0x03 RADIUS"></a>0x03 RADIUS</h3><p>首先安装 FreeRADIUS 到 Fedora</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum -y install freeradius freeradius-ldap freeradius-utils -y</span><br></pre></td></tr></table></figure>
+
+<p>由于要配置基于 UNIX 密码的认证，所以我们要在如下几个地方进行修改</p>
+<ol>
+<li>/etc/raddb/radiusd.conf</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">user = root</span><br><span class="line">group = root</span><br></pre></td></tr></table></figure>
+
+<p>因为在这种认证方式的时候需要读取<code>/etc/shadow</code>文件，所以需要高权限用户</p>
+<ol start="2">
+<li>/etc/raddb/mods-available/pam</li>
+</ol>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716114917443.png" class="10">
+
+<p>主要是要把认证方式改为 passwd</p>
+<p>这时候还需要执行一条命令来启动这个模块</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ln -s /etc/raddb/mods-available/pam /etc/raddb/mods-enabled/pam</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>/etc/raddb/sites-enabled/default</li>
+</ol>
+<p>把 PAM 前面的注释符去掉</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716114418134.png" class="11">
+
+<ol start="4">
+<li>/etc/raddb/users</li>
+</ol>
+<p>在文件的开头写上</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DEFAULT Auth-Type = PAM</span><br><span class="line">        Fall-Through = Yes</span><br></pre></td></tr></table></figure>
+
+<p>文件修改完成后即可启动 radius</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">radiusd -X</span><br></pre></td></tr></table></figure>
+
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716115149107.png" class="12">
+
+<p>使用 radtest 进行测试，命令参数如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Usage: radtest [OPTIONS] user passwd radius-server[:port] nas-port-number secret [ppphint] [nasname]</span><br><span class="line">        -d RADIUS_DIR       Set radius directory</span><br><span class="line">        -t &lt;type&gt;           Set authentication method</span><br><span class="line">                            type can be pap, chap, mschap, or eap-md5</span><br><span class="line">        -P protocol         Select udp (default) or tcp</span><br><span class="line">        -x                  Enable debug output</span><br><span class="line">        -4                  Use IPv4 for the NAS address (default)</span><br><span class="line">        -6                  Use IPv6 for the NAS address</span><br></pre></td></tr></table></figure>
+
+<p>在这里我的测试命令为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">radtest hongxue password 127.0.0.1 0 testing123</span><br></pre></td></tr></table></figure>
+
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716115458551.png" class="13">
+
+<p>可以看到，已经通过了认证</p>
+<h4 id="Apache-配置-1"><a href="#Apache-配置-1" class="headerlink" title="Apache 配置"></a>Apache 配置</h4><p>先编译 mod_auth_radius 模块</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cd /opt/lampp/modules/</span><br><span class="line">wget https://raw.githubusercontent.com/FreeRADIUS/mod_auth_radius/master/mod_auth_radius.c</span><br><span class="line">/opt/lampp/bin/apxs -i -a -c mod_auth_radius.c</span><br></pre></td></tr></table></figure>
+
+<p>执行 <code>mkdir /opt/lampp/radius/</code> 建立目录</p>
+<p>然后在<code>/opt/lampp/etc/httpd.conf</code>添加如下内容</p>
+<p>在<code>LoadModule radius_auth_module modules/mod_auth_radius.so</code>后面添加</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;IfModule mod_auth_radius.c&gt;</span><br><span class="line">AddRadiusAuth localhost:1812 testing123 5:3</span><br><span class="line">AddRadiusCookieValid 5</span><br><span class="line">&lt;/IfModule&gt;</span><br></pre></td></tr></table></figure>
+
+<p>在结尾添加</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Alias /radius "/opt/lampp/radius"</span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> "/<span class="attr">opt</span>/<span class="attr">lampp</span>/<span class="attr">radius</span>"&gt;</span></span><br><span class="line">Options Indexes FollowSymLinks</span><br><span class="line">AllowOverride all</span><br><span class="line">Order allow,deny</span><br><span class="line">Allow from all</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在<code>/opt/lampp/radius</code>目录下，建立.htaccess 文件，内容如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">AuthType Basic</span><br><span class="line">AuthName &quot;RADIUS authentication for localhost&quot;</span><br><span class="line">AuthBasicProvider radius</span><br><span class="line">AuthRadiusCookieValid 5</span><br><span class="line">AuthRadiusActive On</span><br><span class="line">require valid-user</span><br></pre></td></tr></table></figure>
+
+<p>访问<code>http://localhost/radius/</code>，发现需要认证</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716121939738.png" class="14">
+
+<p>使用系统的用户名和密码进行登录</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716122019821.png" class="15">
+
+<h3 id="0x04-Radius-LDAP"><a href="#0x04-Radius-LDAP" class="headerlink" title="0x04 Radius + LDAP"></a>0x04 Radius + LDAP</h3><p>启动 Radius 的 LDAP 模块</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ln -s /etc/raddb/mods-available/ldap /etc/raddb/mods-enabled/ldap</span><br></pre></td></tr></table></figure>
+
+<p>修改<code>/etc/raddb/sites-enabled/default</code>，去掉 LDAP 认证模式前面的注释符</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716124411368.png" class="16">
+
+<p>修改<code>/etc/raddb/users</code>中的认证方式，改成 LDAP</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DEFAULT Auth-Type = LDAP</span><br><span class="line">        Fall-Through = Yes</span><br></pre></td></tr></table></figure>
+
+<p>修改<code>/etc/raddb/mods-available/ldap</code>中，LDAP 的连接信息</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">identity = <span class="string">'cn=Manager,dc=my-domain,dc=com'</span></span><br><span class="line">password = password <span class="comment"># 替换成自己的密码</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#  Unless overridden in another section, the dn from which all</span></span><br><span class="line"><span class="comment">#  searches will start from.</span></span><br><span class="line">base_dn = <span class="string">'ou=People,dc=my-domain,dc=com'</span></span><br></pre></td></tr></table></figure>
+
+<p>重启 RADIUS 服务，使用<code>radtest</code>进行连接测试</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716125255195.png" class="17">
+
+<p>访问<code>http://localhost/radius/</code>，发现需要认证</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716121939738.png" class="14">
+
+<p>使用 LDAP 的用户名和密码进行登录</p>
+<img src="/2018/07/15/Basic、LDAP及Radius认证环境搭建记录/20180716122019821.png" class="15">
+
+<h2 id="五、参考"><a href="#五、参考" class="headerlink" title="五、参考"></a>五、参考</h2><ol>
+<li><a href="https://blog.csdn.net/wanglei_storage/article/details/52663328" target="_blank" rel="noopener">apache+svn+openldap 整合实现认证</a></li>
+<li><a href="https://www.cnblogs.com/lemon-le/p/d6278642e3bb67df6033345ed8cba424.html" target="_blank" rel="noopener">OpenLDAP 与 Apache</a></li>
+<li><a href="https://blog.csdn.net/tangshiweibbs/article/details/71078746" target="_blank" rel="noopener">Apache 使用 LDAP 认证</a></li>
+<li><a href="http://www.htaccesseditor.com/sc.shtml" target="_blank" rel="noopener">.htaccess Editor</a></li>
+<li><a href="https://zh.wikipedia.org/wiki/HTTP%E5%9F%BA%E6%9C%AC%E8%AE%A4%E8%AF%81" target="_blank" rel="noopener">HTTP 基本认证 - 维基百科，自由的百科全书</a></li>
+<li><a href="https://blog.csdn.net/hxmcnu/article/details/42748189" target="_blank" rel="noopener">解决 Undefined variable: _SESSION 的方法</a></li>
+<li><a href="http://www.openldap.org/doc/admin24/quickstart.html" target="_blank" rel="noopener">OpenLDAP Software 2.4 Administrator’s Guide: A Quick-Start Guide</a></li>
+<li><a href="https://freeradius.org/sub_projects/" target="_blank" rel="noopener">PAM_RADIUS MOD_AUTH_RADIUS</a></li>
+<li><a href="https://www.howtoing.com/apache_radius_two_factor_authentication/" target="_blank" rel="noopener">如何配置 Apache 以使用 Radius 进行双因素身份验证</a></li>
+<li><a href="https://networkradius.com/doc/3.0.10/raddb/mods-available/pam.html" target="_blank" rel="noopener">pam | FreeRADIUS Documentation</a></li>
+<li><a href="https://blog.csdn.net/sonflower123/article/details/53582045" target="_blank" rel="noopener">freeradius 如何配置 pam 模块 - CSDN 博客</a></li>
+<li><a href="http://blog.sina.com.cn/s/blog_92dc41ea0101rbl7.html" target="_blank" rel="noopener">FreeRadius+Ldap 整合配置<em>过客</em>新浪博客</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/LDAP/" rel="tag"># LDAP</a>
+            
+              <a href="/tags/Radius/" rel="tag"># Radius</a>
+            
+              <a href="/tags/认证/" rel="tag"># 认证</a>
+            
+              <a href="/tags/Apache/" rel="tag"># Apache</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2018/04/15/linux敏感信息获取/" rel="next" title="Linux敏感信息获取">
+                  <i class="fa fa-chevron-left"></i> Linux敏感信息获取
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/08/01/扩大vmware虚拟机中centos-7的硬盘空间/" rel="prev" title="扩大VMware虚拟机中CentOS 7的硬盘空间">
+                  扩大VMware虚拟机中CentOS 7的硬盘空间 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、目的"><span class="nav-number">1.</span> <span class="nav-text">一、目的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、环境"><span class="nav-number">2.</span> <span class="nav-text">二、环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、要求"><span class="nav-number">3.</span> <span class="nav-text">三、要求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四、内容"><span class="nav-number">4.</span> <span class="nav-text">四、内容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#0x01-Basic-认证"><span class="nav-number">4.1.</span> <span class="nav-text">0x01 Basic 认证</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-简介"><span class="nav-number">4.1.1.</span> <span class="nav-text">1.简介</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-操作"><span class="nav-number">4.1.2.</span> <span class="nav-text">2.操作</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x02-OpenLDAP-认证"><span class="nav-number">4.2.</span> <span class="nav-text">0x02 OpenLDAP 认证</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#LDAP-服务器配置"><span class="nav-number">4.2.1.</span> <span class="nav-text">LDAP 服务器配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Apache-配置"><span class="nav-number">4.2.2.</span> <span class="nav-text">Apache 配置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x03-RADIUS"><span class="nav-number">4.3.</span> <span class="nav-text">0x03 RADIUS</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Apache-配置-1"><span class="nav-number">4.3.1.</span> <span class="nav-text">Apache 配置</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x04-Radius-LDAP"><span class="nav-number">4.4.</span> <span class="nav-text">0x04 Radius + LDAP</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#五、参考"><span class="nav-number">5.</span> <span class="nav-text">五、参考</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Skactor</p>
+  <div class="site-description" itemprop="description">专注信息安全</div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span>
+        
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">26</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Skactor</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

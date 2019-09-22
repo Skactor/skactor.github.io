@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="0 引言最近在代码审计过程中遇到了 php_screw 的加密，PHP_Screw 是一款免费的针对 PHP 源码进行加密的 PHP 的扩展，可以自定义加密种子文件，加密后的文件效率还不会下降。 通过这次研究打算了解一下这方面的机制。">
+<meta name="keywords" content="php,php_screw">
+<meta property="og:type" content="article">
+<meta property="og:title" content="php_screw的加密和解密探究（一）编译Screw扩展并测试">
+<meta property="og:url" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/index.html">
+<meta property="og:site_name" content="Skactor&#39;s Blog">
+<meta property="og:description" content="0 引言最近在代码审计过程中遇到了 php_screw 的加密，PHP_Screw 是一款免费的针对 PHP 源码进行加密的 PHP 的扩展，可以自定义加密种子文件，加密后的文件效率还不会下降。 通过这次研究打算了解一下这方面的机制。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075501.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075508.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075521.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075527.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075534.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075545.png">
+<meta property="og:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075557.png">
+<meta property="og:updated_time" content="2019-09-22T05:18:00.965Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="php_screw的加密和解密探究（一）编译Screw扩展并测试">
+<meta name="twitter:description" content="0 引言最近在代码审计过程中遇到了 php_screw 的加密，PHP_Screw 是一款免费的针对 PHP 源码进行加密的 PHP 的扩展，可以自定义加密种子文件，加密后的文件效率还不会下降。 通过这次研究打算了解一下这方面的机制。">
+<meta name="twitter:image" content="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075501.png">
+  <link rel="canonical" href="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>php_screw的加密和解密探究（一）编译Screw扩展并测试 | Skactor's Blog</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Skactor's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+    
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="https://www.skactor.tk/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Skactor">
+      <meta itemprop="description" content="专注信息安全">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Skactor's Blog">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">php_screw的加密和解密探究（一）编译Screw扩展并测试
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2018-03-26 02:20:11" itemprop="dateCreated datePublished" datetime="2018-03-26T02:20:11+08:00">2018-03-26</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-22 13:18:00" itemprop="dateModified" datetime="2019-09-22T13:18:00+08:00">2019-09-22</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/原创/" itemprop="url" rel="index"><span itemprop="name">原创</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="0-引言"><a href="#0-引言" class="headerlink" title="0 引言"></a>0 引言</h2><p>最近在代码审计过程中遇到了 php_screw 的加密，PHP_Screw 是一款免费的针对 PHP 源码进行加密的 PHP 的扩展，可以自定义加密种子文件，加密后的文件效率还不会下降。</p>
+<p>通过这次研究打算了解一下这方面的机制。</p>
+<a id="more"></a>
+
+<h2 id="1-编译"><a href="#1-编译" class="headerlink" title="1 编译"></a>1 编译</h2><p>首先从 SourceForge 下载源码<code>https://sourceforge.net/projects/php-screw/files/latest/download</code><br>下好了之后是一个名为<code>php_screw-1.5.tar.gz</code>的文件，由于是初探 PHP 扩展，所以使用了这个比较简单的例子。源码结构也非常简单。我使用的 PHP 是 LAMPP 中自带的，查看一下版本</p>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075501.png" class="1">
+
+<p>然后依次执行下列三条命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">phpize <span class="comment">#编译PHP扩展的工具，主要是根据系统信息生成对应的configure文件</span></span><br><span class="line">./configure --with-php-config=/usr/bin/php-config</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>我是用的是 LAMPP，所以要用对应的工具路径，也就是/opt/lampp/bin/中的 php 配置工具</p>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075508.png" class="2">
+
+<p>然而在 make 的时候却报错了</p>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075521.png" class="3">
+
+<p>错误信息主要是<code>error: ‘struct _zend_compiler_globals’ has no member named ‘extended_info’</code></p>
+<p>运气不错，有前人遇到过<a href="http://www.bubuko.com/infodetail-726835.html" target="_blank" rel="noopener">相同的问题</a></p>
+<p>只需要把 php_screw.c 文件中的<code>CG(compiler_options) |= ZEND_COMPILE_EXTENDED_INFO;</code>修改为<code>CG(compiler_options) |= ZEND_COMPILE_EXTENDED_INFO;</code>即可解决。</p>
+<p>这里提供一条简单的命令执行这个操作，在 php_screw 的目录下执行即可完成。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sed -i <span class="string">"s/CG(extended_info) = 1;/CG(compiler_options) |= ZEND_COMPILE_EXTENDED_INFO;/g"</span> php_screw.c</span><br></pre></td></tr></table></figure>
+
+<p>修改完成后就可以继续进行编译了，编译成功后应该如下图所示。</p>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075527.png" class="4">
+
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075534.png" class="5">
+
+<p>在 modules 生成 php_screw.so 库，扩展就编译完成了，接下来进入 tools 目录编译 screw，这个工具是用来把源码加密的。<br>直接用 make 命令编译即可。</p>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075545.png" class="6">
+
+<h2 id="2-测试"><a href="#2-测试" class="headerlink" title="2 测试"></a>2 测试</h2><ol>
+<li>首先写个简单的 phpinfo 用于测试<code>&lt;?php phpinfo();?&gt;</code></li>
+<li>执行./screw test.php，加密成功结果为<code>Success Crypting(test.php)</code>，并且在当前目录多了一个<code>test.php.screw</code>保存了原来的代码。</li>
+<li>把加密好的 test.php 复制到网站目录中</li>
+<li>在/opt/lampp/etc/php.ini 中添加：<code>extension=/opt/php_screw-1.5/modules/php_screw.so</code></li>
+<li>重启 apache</li>
+<li>访问服务器查看结果</li>
+</ol>
+<img src="/2018/03/26/php_screw的加密和解密探究（一）编译Screw扩展并测试/1569075557.png" class="7">
+
+<p>如图所示，我们加密后的代码已经成功运行。</p>
+<p>如果想要进行批量的加密，可以使用如下命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find /data/php/<span class="built_in">source</span> -name “*.php” -<span class="built_in">print</span>|xargs -n1 screw //加密所有的.php文件</span><br><span class="line">find /data/php/<span class="built_in">source</span> -name “*.screw” -<span class="built_in">print</span>|xargs -n1 rm //删除所有的.php源文件的备份文件</span><br></pre></td></tr></table></figure>
+
+<p>可以对/path/to/php/source 目录下的所有后缀为 php 的文件加密，包括子目录下的。<br>这样就基本做到的对 php 源码的加密。如果只是个人的小程序源码的加密，我想 php_screw 是一个不错的选择</p>
+<h2 id="3-加密原理"><a href="#3-加密原理" class="headerlink" title="3 加密原理"></a>3 加密原理</h2><p>上面的内容主要是如何编译和部署 php_screw 扩展，下面来简单分析一下 php 扩展的编写和这种加密算法的实现<br>打开 tools 目录下的 screw.c 可以看到其主要流程</p>
+<p><code>打开目标文件→判断是否已经加密→创建备份文件→调用zencode进行压缩→使用pm9screw_mycryptkey进行加密→保存结果</code></p>
+<p>重点关注两个部分，即 zencode 函数和加密方式。其中，zencode 在同目录下的 zencode.c 中定义，与它一起的还有 zdecode 函数。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">char</span> *<span class="title">zencode</span><span class="params">(<span class="keyword">char</span> *inbuf, <span class="keyword">int</span> inbuf_len, <span class="keyword">int</span> *resultbuf_len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> zcodecom(<span class="number">0</span>, inbuf, inbuf_len, resultbuf_len);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">char</span> *<span class="title">zdecode</span><span class="params">(<span class="keyword">char</span> *inbuf, <span class="keyword">int</span> inbuf_len, <span class="keyword">int</span> *resultbuf_len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> zcodecom(<span class="number">1</span>, inbuf, inbuf_len, resultbuf_len);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个函数都调用了 zcodecom 函数，而传的第一个参数决定了是进行压缩还是解压。转到 zcodecom 函数，从几个函数，如：inflate、deflate，可以轻易的看出其使用的是 zlib 库，相关的原理和实现可以参见<a href="https://blog.csdn.net/reage11/article/details/8519681" target="_blank" rel="noopener"><em>本链接</em></a></p>
+<p>而在 zencode 后的加密部分，只是使用了一个简单的语句把每一个字符进行了简单加密，如下所示</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;newdatalen; i++) &#123;</span><br><span class="line">    newdatap[i] = (<span class="keyword">char</span>)pm9screw_mycryptkey[(newdatalen - i) % cryptkey_len] ^ (~(newdatap[i]));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>也就是把密文的每一位，按位取反之后，与 pm9screw_mycryptkey 数组中的一位做位异或操作。</p>
+<h2 id="4-总结"><a href="#4-总结" class="headerlink" title="4 总结"></a>4 总结</h2><p>这个加密模块还是非常简单的，不过作为实验品却是正好，下面一篇将分析解密部分的实现，并且使用 Python 实现批量解密。</p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/php/" rel="tag"># php</a>
+            
+              <a href="/tags/php-screw/" rel="tag"># php_screw</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2018/03/27/从iana提取最新根域名列表的python脚本/" rel="prev" title="从IANA提取最新根域名列表的Python脚本">
+                  从IANA提取最新根域名列表的Python脚本 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-引言"><span class="nav-number">1.</span> <span class="nav-text">0 引言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-编译"><span class="nav-number">2.</span> <span class="nav-text">1 编译</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-测试"><span class="nav-number">3.</span> <span class="nav-text">2 测试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-加密原理"><span class="nav-number">4.</span> <span class="nav-text">3 加密原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-总结"><span class="nav-number">5.</span> <span class="nav-text">4 总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Skactor</p>
+  <div class="site-description" itemprop="description">专注信息安全</div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">分类</span>
+        
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">26</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Skactor</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/muse.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
